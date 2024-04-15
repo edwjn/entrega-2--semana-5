@@ -1,0 +1,83 @@
+package escenario2_java_politecnico_grancolombiano;
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            // Read product data file
+            Map<String, String[]> productos = new HashMap<>();
+            BufferedReader productosReader = new BufferedReader(new FileReader("data productos.txt"));
+            String lineaProductos;
+            while ((lineaProductos = productosReader.readLine()) != null) {
+                String[] camposProducto = lineaProductos.split(";");
+                productos.put(camposProducto[0], new String[]{camposProducto[1], camposProducto[2]});
+            }
+            productosReader.close();
+
+            // Read seller data file
+            Map<String, String[]> vendedores = new HashMap<>();
+            BufferedReader vendedoresReader = new BufferedReader(new FileReader("data vendedores.txt"));
+            String lineaVendedores;
+            while ((lineaVendedores = vendedoresReader.readLine()) != null) {
+                String[] camposVendedor = lineaVendedores.split(";");
+                vendedores.put(camposVendedor[1], new String[]{camposVendedor[2], camposVendedor[3]});
+            }
+            vendedoresReader.close();
+
+            // Read sales files
+            Map<String, Integer> ventasPorProducto = new HashMap<>();
+            Map<String, Integer> ventasPorVendedor = new HashMap<>();
+            File salesFolder = new File("sales");
+            for (File file : Objects.requireNonNull(salesFolder.listFiles())) {
+                BufferedReader salesReader = new BufferedReader(new FileReader(file));
+                String lineaVenta;
+                while ((lineaVenta = salesReader.readLine()) != null) {
+                    String[] camposVenta = lineaVenta.split(";");
+                    String idProducto = camposVenta[2];
+                    String idVendedor = camposVenta[1];
+                    int cantidad = Integer.parseInt(camposVenta[3]);
+                    // Update sales by product
+                    ventasPorProducto.put(idProducto, ventasPorProducto.getOrDefault(idProducto, 0) + cantidad);
+                    // Update sales by seller
+                    ventasPorVendedor.put(idVendedor, ventasPorVendedor.getOrDefault(idVendedor, 0) + cantidad);
+                }
+                salesReader.close();
+            }
+
+            // Write file Reporte_De_ventas.csv
+            PrintWriter reporteWriter = new PrintWriter(new FileWriter("Reporte_De_ventas.csv"));
+            for (Map.Entry<String, Integer> entry : ventasPorProducto.entrySet()) {
+                String idProducto = entry.getKey();
+                int cantidadVendida = entry.getValue();
+                String[] productoInfo = productos.get(idProducto);
+                if (productoInfo != null) {
+                    String nombreProducto = productoInfo[0];
+                    String precioUnitario = productoInfo[1];
+                    reporteWriter.println(nombreProducto + ";" + precioUnitario + ";" + cantidadVendida);
+                }
+            }
+            reporteWriter.close();
+
+            // Write file Resumen_De_ventas.csv
+            PrintWriter resumenWriter = new PrintWriter(new FileWriter("Resumen_De_ventas.csv"));
+            List<Map.Entry<String, Integer>> listaVentasPorVendedor = new ArrayList<>(ventasPorVendedor.entrySet());
+            listaVentasPorVendedor.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
+            for (Map.Entry<String, Integer> entry : listaVentasPorVendedor) {
+                String idVendedor = entry.getKey();
+                String[] vendedorInfo = vendedores.get(idVendedor);
+                if (vendedorInfo != null) {
+                    String nombreVendedor = vendedorInfo[0];
+                    String apellidoVendedor = vendedorInfo[1];
+                    int cantidadVendida = entry.getValue();
+                    resumenWriter.println(idVendedor + ";" + nombreVendedor + ";" + apellidoVendedor + ";" + cantidadVendida);
+                }
+            }
+            resumenWriter.close();
+
+            System.out.println("Archivos CSV generados exitosamente.");
+        } catch (IOException e) {
+            System.out.println("Error al leer/escribir archivos: " + e.getMessage());
+        }
+    }
+}
